@@ -136,7 +136,7 @@ func fileKeyringPasswordFuncFrom(password string, passwordSet bool, isTTY bool) 
 
 func fileKeyringPasswordFunc() keyring.PromptFunc {
 	password, passwordSet := os.LookupEnv(keyringPasswordEnv)
-	return fileKeyringPasswordFuncFrom(password, passwordSet, term.IsTerminal(int(os.Stdin.Fd())))
+	return fileKeyringPasswordFuncFrom(password, passwordSet, term.IsTerminal(int(os.Stdin.Fd()))) //nolint:gosec // os file descriptor fits int on supported targets
 }
 
 func normalizeKeyringBackend(value string) string {
@@ -302,7 +302,7 @@ func (s *KeyringStore) Keys() ([]string, error) {
 }
 
 type storedToken struct {
-	RefreshToken string    `json:"refresh_token"`
+	RefreshToken string    `json:"refresh_token"` //nolint:gosec // persisted token schema intentionally uses refresh_token
 	Services     []string  `json:"services,omitempty"`
 	Scopes       []string  `json:"scopes,omitempty"`
 	CreatedAt    time.Time `json:"created_at,omitempty"`
