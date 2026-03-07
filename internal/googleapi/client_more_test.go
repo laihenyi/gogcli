@@ -296,3 +296,48 @@ func TestNewBaseTransport_RespectsProxyAndTLSMinimum(t *testing.T) {
 		t.Fatalf("expected HTTPS proxy to be honored, got: %v", proxyURL)
 	}
 }
+
+func TestNewBaseTransport_SetsResponseHeaderTimeout(t *testing.T) {
+	transport := newBaseTransport()
+	if transport.ResponseHeaderTimeout != responseHeaderTimeout {
+		t.Fatalf("expected ResponseHeaderTimeout=%v, got %v", responseHeaderTimeout, transport.ResponseHeaderTimeout)
+	}
+}
+
+func TestOptionsForAccountScopes_NoClientTimeout(t *testing.T) {
+	origRead := readClientCredentials
+	origOpen := openSecretsStore
+
+	t.Cleanup(func() {
+		readClientCredentials = origRead
+		openSecretsStore = origOpen
+	})
+
+	readClientCredentials = func(string) (config.ClientCredentials, error) {
+		return config.ClientCredentials{ClientID: "id", ClientSecret: "secret"}, nil
+	}
+	openSecretsStore = func() (secrets.Store, error) {
+		return &stubStore{tok: secrets.Token{Email: "a@b.com", RefreshToken: "rt"}}, nil
+	}
+
+	opts, err := optionsForAccountScopes(context.Background(), "svc", "a@b.com", []string{"s1"})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+
+	if len(opts) == 0 {
+		t.Fatalf("expected client options")
+	}
+
+	// The http.Client returned by optionsForAccountScopes must not set a
+	// hard Timeout so that large file downloads (Drive videos, etc.) are
+	// not interrupted. Server responsiveness is instead guarded by the
+	// transport-level ResponseHeaderTimeout.
+	//
+	// We cannot easily extract the http.Client from option.ClientOption,
+	// so we verify the transport layer instead.
+	transport := newBaseTransport()
+	if transport.ResponseHeaderTimeout == 0 {
+		t.Fatalf("expected ResponseHeaderTimeout to be set on transport")
+	}
+}

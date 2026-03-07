@@ -20,7 +20,19 @@ import (
 	"github.com/steipete/gogcli/internal/secrets"
 )
 
-const defaultHTTPTimeout = 30 * time.Second
+const (
+	// responseHeaderTimeout limits the time waiting for the server to begin
+	// responding (send response headers). Once headers arrive and the body
+	// starts streaming, there is no hard cap — large file downloads are not
+	// cut short. This replaces the former http.Client.Timeout which applied
+	// to the entire request lifecycle and caused timeouts on large Drive
+	// file downloads.
+	responseHeaderTimeout = 30 * time.Second
+
+	// tokenExchangeTimeout is applied to the short-lived HTTP client used
+	// for OAuth2 token refresh exchanges, which should always be fast.
+	tokenExchangeTimeout = 30 * time.Second
+)
 
 var (
 	readClientCredentials = config.ReadClientCredentialsFor
@@ -78,7 +90,7 @@ func tokenSourceForAccountScopes(ctx context.Context, serviceLabel string, email
 	}
 
 	// Ensure refresh-token exchanges don't hang forever.
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: defaultHTTPTimeout})
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: tokenExchangeTimeout})
 
 	return cfg.TokenSource(ctx, &oauth2.Token{RefreshToken: tok.RefreshToken}), nil
 }
@@ -130,7 +142,9 @@ func optionsForAccountScopes(ctx context.Context, serviceLabel string, email str
 	})
 	c := &http.Client{
 		Transport: retryTransport,
-		Timeout:   defaultHTTPTimeout,
+		// No Timeout set: large file downloads (Drive videos, etc.) must not
+		// be cut short. Server responsiveness is guarded by the transport's
+		// ResponseHeaderTimeout instead.
 	}
 
 	slog.Debug("client options with custom scopes created successfully", "serviceLabel", serviceLabel, "email", email)
@@ -146,11 +160,14 @@ func newBaseTransport() *http.Transport {
 			TLSClientConfig: &tls.Config{
 				MinVersion: tls.VersionTLS12,
 			},
+			ResponseHeaderTimeout: responseHeaderTimeout,
 		}
 	}
 
 	// Clone() deep-copies TLSClientConfig, so no additional clone needed.
 	transport := defaultTransport.Clone()
+	transport.ResponseHeaderTimeout = responseHeaderTimeout
+
 	if transport.TLSClientConfig == nil {
 		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 		return transport

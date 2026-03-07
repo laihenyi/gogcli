@@ -20,7 +20,7 @@ var newServiceAccountTokenSource = func(ctx context.Context, keyJSON []byte, sub
 	cfg.Subject = subject
 
 	// Ensure token exchanges don't hang forever.
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: defaultHTTPTimeout})
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: tokenExchangeTimeout})
 
 	return cfg.TokenSource(ctx), nil
 }
