@@ -287,7 +287,7 @@ func parseBraceKeyValue(key, val string, expr *braceExpr) error {
 		case "y", "yes", boolTrue, "1":
 			t := true
 			expr.Check = &t
-		case "n", "no", "false", "0":
+		case "n", "no", boolFalse, "0":
 			f := false
 			expr.Check = &f
 		}

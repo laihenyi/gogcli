@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/99designs/keyring"
@@ -20,12 +22,76 @@ import (
 	"github.com/steipete/gogcli/internal/secrets"
 )
 
-const defaultHTTPTimeout = 30 * time.Second
+const (
+	// responseHeaderTimeout limits the time waiting for the server to begin
+	// responding (send response headers). Once headers arrive and the body
+	// starts streaming, there is no hard cap — large file downloads are not
+	// cut short. This replaces the former http.Client.Timeout which applied
+	// to the entire request lifecycle and caused timeouts on large Drive
+	// file downloads.
+	responseHeaderTimeout = 30 * time.Second
+
+	// tokenExchangeTimeout is applied to the short-lived HTTP client used
+	// for OAuth2 token refresh exchanges, which should always be fast.
+	tokenExchangeTimeout = 30 * time.Second
+)
 
 var (
 	readClientCredentials = config.ReadClientCredentialsFor
 	openSecretsStore      = secrets.OpenDefault
 )
+
+type persistingTokenSource struct {
+	base   oauth2.TokenSource
+	store  secrets.Store
+	client string
+	email  string
+
+	mu  sync.Mutex
+	tok secrets.Token
+}
+
+func newPersistingTokenSource(base oauth2.TokenSource, store secrets.Store, client string, email string, tok secrets.Token) oauth2.TokenSource {
+	return &persistingTokenSource{
+		base:   base,
+		store:  store,
+		client: client,
+		email:  email,
+		tok:    tok,
+	}
+}
+
+func (p *persistingTokenSource) Token() (*oauth2.Token, error) {
+	t, err := p.base.Token()
+	if err != nil {
+		return nil, fmt.Errorf("base token source: %w", err)
+	}
+
+	refreshToken := strings.TrimSpace(t.RefreshToken)
+	if refreshToken == "" {
+		return t, nil
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if refreshToken == p.tok.RefreshToken {
+		return t, nil
+	}
+
+	updated := p.tok
+	updated.RefreshToken = refreshToken
+
+	if err := p.store.SetToken(p.client, p.email, updated); err != nil {
+		slog.Warn("persist rotated refresh token failed", "email", p.email, "client", p.client, "err", err)
+		return t, nil
+	}
+
+	p.tok = updated
+	slog.Debug("persisted rotated refresh token", "email", p.email, "client", p.client)
+
+	return t, nil
+}
 
 func tokenSourceForAccount(ctx context.Context, service googleauth.Service, email string) (oauth2.TokenSource, error) {
 	client, err := authclient.ResolveClient(ctx, email)
@@ -78,9 +144,11 @@ func tokenSourceForAccountScopes(ctx context.Context, serviceLabel string, email
 	}
 
 	// Ensure refresh-token exchanges don't hang forever.
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: defaultHTTPTimeout})
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: tokenExchangeTimeout})
 
-	return cfg.TokenSource(ctx, &oauth2.Token{RefreshToken: tok.RefreshToken}), nil
+	baseSource := cfg.TokenSource(ctx, &oauth2.Token{RefreshToken: tok.RefreshToken})
+
+	return newPersistingTokenSource(baseSource, store, client, email, tok), nil
 }
 
 func optionsForAccount(ctx context.Context, service googleauth.Service, email string) ([]option.ClientOption, error) {
@@ -99,7 +167,7 @@ func optionsForAccountScopes(ctx context.Context, serviceLabel string, email str
 
 	var ts oauth2.TokenSource
 
-	if serviceAccountTS, saPath, ok, err := tokenSourceForServiceAccountScopes(ctx, email, scopes); err != nil {
+	if serviceAccountTS, saPath, ok, err := tokenSourceForServiceAccountScopes(ctx, serviceLabel, email, scopes); err != nil {
 		return nil, fmt.Errorf("service account token source: %w", err)
 	} else if ok {
 		slog.Debug("using service account credentials", "email", email, "path", saPath)
@@ -130,7 +198,9 @@ func optionsForAccountScopes(ctx context.Context, serviceLabel string, email str
 	})
 	c := &http.Client{
 		Transport: retryTransport,
-		Timeout:   defaultHTTPTimeout,
+		// No Timeout set: large file downloads (Drive videos, etc.) must not
+		// be cut short. Server responsiveness is guarded by the transport's
+		// ResponseHeaderTimeout instead.
 	}
 
 	slog.Debug("client options with custom scopes created successfully", "serviceLabel", serviceLabel, "email", email)
@@ -146,11 +216,14 @@ func newBaseTransport() *http.Transport {
 			TLSClientConfig: &tls.Config{
 				MinVersion: tls.VersionTLS12,
 			},
+			ResponseHeaderTimeout: responseHeaderTimeout,
 		}
 	}
 
 	// Clone() deep-copies TLSClientConfig, so no additional clone needed.
 	transport := defaultTransport.Clone()
+	transport.ResponseHeaderTimeout = responseHeaderTimeout
+
 	if transport.TLSClientConfig == nil {
 		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 		return transport
