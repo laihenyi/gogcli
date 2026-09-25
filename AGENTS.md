@@ -98,34 +98,25 @@ svc, err := newGmailService(ctx, account)
 
 ## Coding Conventions
 
-- Formatting: `make fmt` (goimports local prefix `github.com/steipete/gogcli` + gofumpt)
-  > ⚠️ **Known conflict (CLAUDE.md vs AGENTS.md, unresolved as of merge)**: the AGENTS.md
-  > version of this file previously stated the prefix as `github.com/openclaw/gogcli`,
-  > which matches the current `module` line in `go.mod`. CLAUDE.md's `steipete` prefix
-  > looks stale relative to `go.mod`, but per merge rule the CLAUDE.md wording is kept
-  > here; verify against `go.mod` before relying on it.
+- Formatting: `make fmt` (goimports local prefix `github.com/openclaw/gogcli`, matching `go.mod` and the Makefile, + gofumpt)
 - Gmail labels: IDs are case-sensitive opaque tokens; only case-fold names for lookup
-- Commits: Conventional Commits format (e.g. `feat(cli): add --verbose to send`)
-- Follow Conventional Commits + action-oriented subjects (e.g. `feat(cli): add --verbose to send`)
+- Commits: Conventional Commits with action-oriented subjects (e.g. `feat(cli): add --verbose to send`)
 - Group related changes; avoid bundling unrelated refactors
 - Unit tests: stdlib `testing` + `httptest` for HTTP mocking; test files next to source
 - Headless keyring: set `GOG_KEYRING_BACKEND=file` + `GOG_KEYRING_PASSWORD` for CI/serverless; never commit OAuth credential JSON files or tokens
 
 ## Commit & Pull Request Guidelines
 
-- Create commits with `committer "<msg>" <file...>`; avoid manual staging.
+- Create commits with `committer "<msg>" <file...>` when that helper is installed; otherwise `git commit` the listed files directly. Avoid staging unrelated files.
 - PRs should summarize scope, note testing performed, and mention any user-facing changes or new flags.
-- Maintain `CHANGELOG.md`: add user-visible changes to `Unreleased` as fixes and features land, with PR/issue references and contributor thanks. Finalize that section at release; do not put later work under an already published version. The release-time-only changelog exception for `openclaw/openclaw` does not apply to this repository.
+- Maintain `CHANGELOG.md` in every PR: add user-visible changes to `Unreleased` as fixes and features land, with PR/issue references and contributor thanks. Finalize that section at release; do not put later work under an already published version.
 - New contributor: thank in `CHANGELOG.md` and update README contributors list if present.
 
 ## PR Workflow
 
 - **Review mode (PR link only):** read via `gh pr view` / `gh pr diff`; do not switch branches or change code
-- **Landing mode:** temp branch from `main` → bring in PR (squash default) → fix → update `CHANGELOG.md` (PR #/issue + thanks) → `make ci` → merge to `main` → delete temp branch
-- **Landing mode (AGENTS.md variant, kept for the extra detail):** temp branch from `main`; bring in PR (squash default; rebase/merge when needed); fix; update `CHANGELOG.md` (PR #/issue + thanks); run `make ci`; final commit; merge to `main`; delete temp; end on `main`
-- If squashing, add `Co-authored-by:` for the PR author; leave a PR comment with what landed + SHAs
-- If landing contributor work, always add `Co-authored-by:` trailers for PR authors, even when we partially rewrite, group, or manually apply their changes; leave a PR comment with what landed + SHAs
-- New contributor: thank in `CHANGELOG.md` and update README contributors list if present
+- **Landing mode:** temp branch from `main`; bring in the PR (squash by default; rebase or merge when needed); fix; update `CHANGELOG.md` (PR #/issue + thanks); run `make ci`; final commit; merge to `main`; delete the temp branch; end on `main`
+- Always add `Co-authored-by:` trailers for PR authors when landing contributor work, even when the changes are partially rewritten, grouped, or applied by hand; leave a PR comment with what landed + SHAs
 
 ## Security & Configuration Tips
 
@@ -140,3 +131,7 @@ scripts/verify-release.sh X.Y.Z
 ```
 
 Always run all steps (CI + changelog + tag + GitHub release artifacts + tap update + Homebrew sanity install).
+
+## Cross-Harness Handoff
+
+`.wolf/` holds session handoff state shared across agents (Claude Code, Pi, Codex). Read `.wolf/OPENWOLF.md` at session start; if `.wolf/handoff.md` exists, read it fully before doing anything else. Write a new handoff with `/handoff` before switching sessions or when open items remain. `.wolf/handoff.md` is gitignored; `.wolf/OPENWOLF.md` is committed.

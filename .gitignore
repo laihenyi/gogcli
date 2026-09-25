@@ -48,3 +48,6 @@ internal/cmd/safety_profile_baked_gen.go
 # Node (optional dev scripts)
 node_modules/
 dist/
+
+# Cross-harness handoff state (local only)
+.wolf/handoff.md
