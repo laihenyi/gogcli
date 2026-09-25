@@ -1,6 +1,6 @@
 ---
 name: gog-appscript
-description: "Apps Script operations through gog."
+description: "Apps Script reads and approved writes through the gog CLI. Use when a task needs Apps Script data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Apps Script

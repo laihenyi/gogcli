@@ -2,6 +2,7 @@
 
 ## 0.40.1 - Unreleased
 
+- Agent skills: give each generated service skill a description that states when to use it (shell or script access to that Google service with explicit account selection, JSON output, and read-only or dry-run guards) so agents trigger it reliably. — thanks @laihenyi.
 - Gmail: stage and replace raw RFC822 drafts, retrieve their MIME, and preview safely offline; bound raw draft/send input to 35 MiB while preserving no-send policies. (#1126) — thanks @darkamenosa.
 - Slides: derive either missing image dimension from local files or anonymously readable public HTTPS images, preserving explicit size pairs and documenting the public-fetch requirement. (#1112) — thanks @sebsnyk.
 - Apps Script: keep file names within one TSV field in `appscript content`, escaping line breaks instead of splitting output rows. (#1091) — thanks @haosdent.

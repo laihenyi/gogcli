@@ -1,6 +1,6 @@
 ---
 name: gog-chat
-description: "Google Chat operations through gog."
+description: "Google Chat reads and approved writes through the gog CLI. Use when a task needs Google Chat data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google Chat

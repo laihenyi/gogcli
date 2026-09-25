@@ -1,6 +1,6 @@
 ---
 name: gog-docs
-description: "Google Docs operations through gog."
+description: "Google Docs reads and approved writes through the gog CLI. Use when a task needs Google Docs data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google Docs

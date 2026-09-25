@@ -1,6 +1,6 @@
 ---
 name: gog-gmail
-description: "Gmail operations through gog."
+description: "Gmail reads and approved writes through the gog CLI. Use when a task needs Gmail data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Gmail

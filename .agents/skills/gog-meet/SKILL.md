@@ -1,6 +1,6 @@
 ---
 name: gog-meet
-description: "Google Meet operations through gog."
+description: "Google Meet reads and approved writes through the gog CLI. Use when a task needs Google Meet data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google Meet

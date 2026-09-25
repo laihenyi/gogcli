@@ -1,6 +1,6 @@
 ---
 name: gog-forms
-description: "Google Forms operations through gog."
+description: "Google Forms reads and approved writes through the gog CLI. Use when a task needs Google Forms data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google Forms

@@ -1,6 +1,6 @@
 ---
 name: gog-people
-description: "Google People operations through gog."
+description: "Google People reads and approved writes through the gog CLI. Use when a task needs Google People data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google People

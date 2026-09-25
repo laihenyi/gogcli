@@ -1,6 +1,6 @@
 ---
 name: gog-youtube
-description: "YouTube operations through gog."
+description: "YouTube reads and approved writes through the gog CLI. Use when a task needs YouTube data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # YouTube

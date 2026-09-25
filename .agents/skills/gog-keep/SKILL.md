@@ -1,6 +1,6 @@
 ---
 name: gog-keep
-description: "Google Keep operations through gog."
+description: "Google Keep reads and approved writes through the gog CLI. Use when a task needs Google Keep data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Google Keep

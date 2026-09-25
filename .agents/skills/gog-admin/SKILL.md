@@ -1,6 +1,6 @@
 ---
 name: gog-admin
-description: "Workspace Admin operations through gog."
+description: "Workspace Admin reads and approved writes through the gog CLI. Use when a task needs Workspace Admin data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # Workspace Admin

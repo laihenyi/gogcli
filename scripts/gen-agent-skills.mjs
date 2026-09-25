@@ -68,7 +68,7 @@ function skillMarkdown(service, command) {
   const example = examples[service] || `gog --readonly --account user@example.com ${service} --help`;
   return `---
 name: gog-${service}
-description: "${title} operations through gog."
+description: "${title} reads and approved writes through the gog CLI. Use when a task needs ${title} data or changes from a shell or script: explicit account selection, stable JSON output, read-only and dry-run guards."
 ---
 
 # ${title}
