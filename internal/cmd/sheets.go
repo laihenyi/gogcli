@@ -34,6 +34,7 @@ type SheetsCmd struct {
 	Get           SheetsGetCmd             `cmd:"" name:"get" aliases:"read,show" help:"Get values from a range"`
 	Update        SheetsUpdateCmd          `cmd:"" name:"update" aliases:"edit,set" help:"Update values in a range"`
 	BatchUpdate   SheetsBatchUpdateCmd     `cmd:"" name:"batch-update" aliases:"batch" help:"Update values in multiple ranges with one API request"`
+	BatchRequest  SheetsBatchRequestCmd    `cmd:"" name:"batch-request" help:"Submit an atomic structural request array (requires confirmation or --force)"`
 	Append        SheetsAppendCmd          `cmd:"" name:"append" aliases:"add" help:"Append values to a range"`
 	Insert        SheetsInsertCmd          `cmd:"" name:"insert" help:"Insert empty rows or columns into a sheet"`
 	DeleteDim     SheetsDeleteDimensionCmd `cmd:"" name:"delete-dimension" aliases:"delete-dim" help:"Delete rows or columns while preserving intersecting tables"`
@@ -610,12 +611,15 @@ func (c *SheetsAppendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if strings.TrimSpace(c.CopyValidationFrom) != "" {
-		if resp.Updates == nil || strings.TrimSpace(resp.Updates.UpdatedRange) == "" {
+		if resp == nil || resp.Updates == nil || strings.TrimSpace(resp.Updates.UpdatedRange) == "" {
 			return fmt.Errorf("append response missing updated range for validation copy")
 		}
 		if err := copyDataValidation(ctx, svc, spreadsheetID, c.CopyValidationFrom, resp.Updates.UpdatedRange); err != nil {
 			return err
 		}
+	}
+	if resp == nil || resp.Updates == nil {
+		return fmt.Errorf("append response missing update metadata")
 	}
 
 	if outfmt.IsJSON(ctx) {
@@ -677,58 +681,6 @@ func (c *SheetsClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	u.Out().Linef("Cleared %s", resp.ClearedRange)
 	return nil
-}
-
-// SheetsRawCmd dumps the full Spreadsheets.Get response as JSON, with no
-// Fields restriction. `--include-grid-data` opts into returning cell-level
-// data; it is off by default because grid payloads can be multi-MB and are
-// the primary leakage vector (formulas may embed API keys or tokens).
-//
-// REST reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/get
-// Go type: https://pkg.go.dev/google.golang.org/api/sheets/v4#Spreadsheet
-type SheetsRawCmd struct {
-	SpreadsheetID   string `arg:"" name:"spreadsheetId" help:"Spreadsheet ID"`
-	Sheet           string `name:"sheet" help:"Return only this sheet (exact tab title); spreadsheet-level metadata remains included"`
-	IncludeGridData bool   `name:"include-grid-data" help:"Include cell-level grid data in the response (off by default; payloads can be large and may contain secrets in formulas)"`
-	Pretty          bool   `name:"pretty" help:"Pretty-print JSON (default: compact single-line)"`
-}
-
-func (c *SheetsRawCmd) Run(ctx context.Context, flags *RootFlags) error {
-	u := ui.FromContext(ctx)
-	spreadsheetID := normalizeGoogleID(strings.TrimSpace(c.SpreadsheetID))
-	if spreadsheetID == "" {
-		return usage("empty spreadsheetId")
-	}
-
-	_, svc, err := requireSheetsService(ctx, flags)
-	if err != nil {
-		return err
-	}
-
-	call := svc.Spreadsheets.Get(spreadsheetID).Context(ctx)
-	if c.Sheet != "" {
-		// Always quote the title so A1-like names cannot resolve to cell ranges.
-		call = call.Ranges("'" + strings.ReplaceAll(c.Sheet, "'", "''") + "'")
-	}
-	if c.IncludeGridData {
-		call = call.IncludeGridData(true)
-		u.Err().Println("warning: --include-grid-data may expose cell-level formulas that contain API keys or hardcoded secrets")
-	}
-
-	resp, err := call.Do()
-	if err != nil {
-		return err
-	}
-	resp, err = requireRawResponse(resp, "spreadsheet not found")
-	if err != nil {
-		return err
-	}
-
-	if len(resp.DeveloperMetadata) > 0 {
-		u.Err().Println("warning: response contains developerMetadata which may hold third-party app secrets")
-	}
-
-	return writeRawJSON(ctx, resp, c.Pretty)
 }
 
 type SheetsMetadataCmd struct {

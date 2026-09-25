@@ -79,6 +79,12 @@ installation.
 
 ## Schema automation metadata
 
+Runtime command lists (`--enable-commands`, `--enable-commands-exact`, and
+`--disable-commands`, including their environment defaults) reject nonblank
+values containing only commas and whitespace with usage exit code `2`. Empty
+values still clear that runtime list; omit a list or pass an empty value to leave
+it unset. Extra commas around actual command names are accepted.
+
 The top-level `automation` object has three parts:
 
 | Field | Meaning |
@@ -138,7 +144,16 @@ gog auth doctor --check --json --no-input
 
 Google API rate-limit retries honor `Retry-After` delays up to 60 seconds per
 retry, including numeric seconds and HTTP dates. Cancelling the command also
-cancels a pending retry wait.
+cancels a pending retry wait. Upload bodies are closed even when a request is
+rejected by the circuit breaker or cannot be buffered for retry, so those
+failures release the associated file or stream resources.
+
+Command cancellation also stops in-flight YouTube requests, Chat unread-message
+lookups and sends, and People profile and relation reads.
+
+If `sheets append` reports missing update metadata, it returns an error without
+success output or another append attempt. Inspect the spreadsheet before
+retrying: the write may have succeeded despite the incomplete response.
 
 | Code | Name | Meaning |
 | ---: | --- | --- |
@@ -158,6 +173,10 @@ cancels a pending retry wait.
 Malformed local payloads, such as invalid token-import JSON or timestamps, use
 `usage` (`2`). Commands that cannot run because their required local setup is
 absent or incomplete use `config` (`10`).
+
+If Google rejects an OAuth token refresh with `invalid_grant`, the command exits
+with `auth_required` (`4`) and retains its reauthorization advice, including in
+`--no-input` and `--readonly` runs.
 
 The same classifications apply to direct HTTP integrations such as Photos
 Library, Photos Picker, and Places. For example, an expired or deleted Picker
@@ -200,6 +219,11 @@ cache. Missing, expired or corrupt entries are fetched again. Cache failures
 do not prevent network access, and failed fetches are not cached. `api list`
 and actual API responses remain uncached; authorization and command-policy
 checks still run on every call.
+
+`gog api list --plain` emits TSV columns `NAME`, `VERSION`, `TITLE`,
+`DESCRIPTION`, and `PREFERRED`. Embedded line breaks and terminal controls are
+normalized or escaped so each API occupies one row. Default output and `--json`
+preserve the full Discovery catalog response, including its metadata.
 
 ## MCP discovery
 

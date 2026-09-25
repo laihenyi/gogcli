@@ -51,6 +51,7 @@ type (
 	AnalyticsAdminServiceFactory func(context.Context, string) (*analyticsadmin.Service, error)
 	AnalyticsDataServiceFactory  func(context.Context, string) (*analyticsdata.Service, error)
 	CalendarServiceFactory       func(context.Context, string) (*calendar.Service, error)
+	HTTPClientFactory            func(context.Context, string) (*http.Client, error)
 	ChatServiceFactory           func(context.Context, string) (*chat.Service, error)
 	ChatSearchServiceFactory     func(context.Context, string) (*googleapi.ChatSearchClient, error)
 	ClassroomServiceFactory      func(context.Context, string) (*classroom.Service, error)
@@ -70,6 +71,7 @@ type (
 	PhotosPickerServiceFactory   func(context.Context, string) (*googleapi.PhotosPickerClient, error)
 	SearchConsoleServiceFactory  func(context.Context, string) (*searchconsole.Service, error)
 	SheetsServiceFactory         func(context.Context, string) (*sheets.Service, error)
+	SheetsHTTPClientFactory      func(context.Context, string) (*http.Client, error)
 	SlidesServiceFactory         func(context.Context, string) (*slides.Service, error)
 	TasksServiceFactory          func(context.Context, string) (*tasks.Service, error)
 	YouTubeServiceFactory        func(context.Context, string) (*youtube.Service, error)
@@ -123,6 +125,7 @@ type Services struct {
 	PhotosPicker      PhotosPickerServiceFactory
 	SearchConsole     SearchConsoleServiceFactory
 	Sheets            SheetsServiceFactory
+	SheetsHTTP        SheetsHTTPClientFactory
 	ConnectedSheets   SheetsServiceFactory
 	SitesDrive        DriveServiceFactory
 	Slides            SlidesServiceFactory
@@ -138,6 +141,14 @@ type Services struct {
 	PublicImageAspect PublicImageAspectFunc
 
 	ConnectedSheetsWriter SheetsServiceFactory
+
+	CalendarHTTP       HTTPClientFactory
+	DriveHTTP          HTTPClientFactory
+	FormsHTTP          HTTPClientFactory
+	GmailHTTP          HTTPClientFactory
+	PeopleContactsHTTP HTTPClientFactory
+	SlidesHTTP         HTTPClientFactory
+	TasksHTTP          HTTPClientFactory
 }
 
 type AuthOperations struct {
