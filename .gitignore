@@ -52,3 +52,6 @@ dist/
 
 # Cross-harness handoff state (local only)
 .wolf/handoff.md
+
+# OAuth client 憑證（已匯入 gog 後不應進版控）
+client_secret_*.json
